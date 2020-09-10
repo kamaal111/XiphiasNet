@@ -12,6 +12,8 @@ public protocol KamaalNetworkable {
 }
 
 public struct KamaalNetworker: KamaalNetworkable {
+    public init() { }
+
     public func loadImage(from imageUrl: String, completion: @escaping (Result<Data, Error>) -> Void) {
         guard let url = URL(string: imageUrl) else {
             completion(.failure(NSError(domain: "url error", code: 400, userInfo: nil)))
