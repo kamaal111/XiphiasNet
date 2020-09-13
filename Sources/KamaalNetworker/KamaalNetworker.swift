@@ -9,6 +9,7 @@ import Foundation
 
 public protocol KamaalNetworkable {
     func loadImage(from imageUrl: String, completion: @escaping (Result<Data, Error>) -> Void)
+    func post<T: Codable>(_ type: T.Type, from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void)
 }
 
 public class KamaalNetworker: KamaalNetworkable {
@@ -43,7 +44,7 @@ public class KamaalNetworker: KamaalNetworkable {
         .resume()
     }
 
-    func post<T: Codable>(_ type: T.Type, from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void) {
+    public func post<T: Codable>(_ type: T.Type, from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void) {
         URLSession.shared.dataTask(with: request) { [weak self] (data: Data?, response: URLResponse?, error: Error?) in
             guard let self = self else {
                 completion(.failure(NSError(domain: "What the hell", code: 500, userInfo: nil)))
