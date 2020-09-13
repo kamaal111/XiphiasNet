@@ -9,9 +9,10 @@ import Foundation
 
 public protocol KamaalNetworkable {
     func loadImage(from imageUrl: String, completion: @escaping (Result<Data, Error>) -> Void)
+    func post<T: Codable>(_ type: T.Type, from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void)
 }
 
-public class KamaalNetworker: KamaalNetworkable {
+public struct KamaalNetworker: KamaalNetworkable {
     public var jsonDecoder = JSONDecoder()
 
     private let kowalskiAnalysis: Bool
@@ -19,8 +20,10 @@ public class KamaalNetworker: KamaalNetworkable {
     public init(kowalskiAnalysis: Bool = false) {
         self.kowalskiAnalysis = kowalskiAnalysis
     }
+}
 
-    public func loadImage(from imageUrl: String, completion: @escaping (Result<Data, Error>) -> Void) {
+public extension KamaalNetworker {
+    func loadImage(from imageUrl: String, completion: @escaping (Result<Data, Error>) -> Void) {
         guard let url = URL(string: imageUrl) else {
             completion(.failure(NSError(domain: "url error", code: 400, userInfo: nil)))
             return
@@ -44,11 +47,7 @@ public class KamaalNetworker: KamaalNetworkable {
     }
 
     func post<T: Codable>(_ type: T.Type, from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void) {
-        URLSession.shared.dataTask(with: request) { [weak self] (data: Data?, response: URLResponse?, error: Error?) in
-            guard let self = self else {
-                completion(.failure(NSError(domain: "What the hell", code: 500, userInfo: nil)))
-                return
-            }
+        URLSession.shared.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
             if let error = error {
                 completion(.failure(error))
                 return
@@ -80,7 +79,9 @@ public class KamaalNetworker: KamaalNetworkable {
         }
         .resume()
     }
+}
 
+private extension KamaalNetworker {
     func analys(_ message: String) {
         if kowalskiAnalysis {
             print(message)
