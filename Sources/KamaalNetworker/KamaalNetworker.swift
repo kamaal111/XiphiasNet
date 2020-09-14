@@ -9,7 +9,7 @@ import Foundation
 
 public protocol KamaalNetworkable {
     func loadImage(from imageUrl: String, completion: @escaping (Result<Data, Error>) -> Void)
-    func post<T: Codable>(_ type: T.Type, from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void)
+    func request<T: Codable>(_ type: T.Type, from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void)
 }
 
 public struct KamaalNetworker: KamaalNetworkable {
@@ -46,8 +46,8 @@ public extension KamaalNetworker {
         .resume()
     }
 
-    func post<T: Codable>(_ type: T.Type, from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void) {
-        URLSession.shared.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
+    func request<T: Codable>(_ type: T.Type, from urlRequest: URLRequest, completion: @escaping (Result<T, Error>) -> Void) {
+        URLSession.shared.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
             if let error = error {
                 completion(.failure(error))
                 return
