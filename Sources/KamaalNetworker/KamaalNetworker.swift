@@ -60,18 +60,19 @@ public extension KamaalNetworker {
                 completion(.failure(NSError(domain: "could not get json string", code: 400, userInfo: nil)))
                 return
             }
-            self.analys(jsonString)
+            self.analys("KamaalNetworker -> JSON RESPONSE: \(jsonString)")
+            guard let response = response as? HTTPURLResponse else {
+                completion(.failure(NSError(domain: "response error", code: 400, userInfo: nil)))
+                return
+            }
+            if response.statusCode != 200 {
+                self.analys("KamaalNetworker -> STATUS CODE: \(response.statusCode)")
+                completion(.failure(NSError(domain: "response error", code: response.statusCode, userInfo: nil)))
+                return
+            }
             do {
+                
                 let jsonResponse = try self.jsonDecoder.decode(type, from: dataResponse)
-                guard let response = response as? HTTPURLResponse else {
-                    completion(.failure(NSError(domain: "response error", code: 400, userInfo: nil)))
-                    return
-                }
-                if response.statusCode != 200 {
-                    print(response.statusCode)
-                    completion(.failure(NSError(domain: "response error", code: response.statusCode, userInfo: nil)))
-                    return
-                }
                 completion(.success(jsonResponse))
             } catch let parsingError {
                 completion(.failure(parsingError))
