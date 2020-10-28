@@ -1,5 +1,5 @@
 //
-//  Networker.swift
+//  XiphiasNet.swift
 //
 //
 //  Created by Kamaal Farah on 10/09/2020.
@@ -7,12 +7,12 @@
 
 import Foundation
 
-public protocol KamaalNetworkable {
+public protocol XiphiasNetable {
     func loadImage(from imageUrl: String, completion: @escaping (Result<Data, Error>) -> Void)
     func request<T: Codable>(_ type: T.Type, from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void)
 }
 
-public struct KamaalNetworker: KamaalNetworkable {
+public struct XiphiasNet: XiphiasNetable {
     public var jsonDecoder = JSONDecoder()
 
     private let kowalskiAnalysis: Bool
@@ -22,7 +22,7 @@ public struct KamaalNetworker: KamaalNetworkable {
     }
 }
 
-public extension KamaalNetworker {
+public extension XiphiasNet {
     func loadImage(from imageUrl: String, completion: @escaping (Result<Data, Error>) -> Void) {
         guard let url = URL(string: imageUrl) else {
             completion(.failure(NSError(domain: "url error", code: 400, userInfo: nil)))
@@ -60,13 +60,13 @@ public extension KamaalNetworker {
                 completion(.failure(NSError(domain: "could not get json string", code: 400, userInfo: nil)))
                 return
             }
-            self.analys("KamaalNetworker -> JSON RESPONSE: \(jsonString)")
+            self.analys("XiphiasNet -> JSON RESPONSE: \(jsonString)")
             guard let response = response as? HTTPURLResponse else {
                 completion(.failure(NSError(domain: "response error", code: 400, userInfo: nil)))
                 return
             }
             if response.statusCode != 200 {
-                self.analys("KamaalNetworker -> STATUS CODE: \(response.statusCode)")
+                self.analys("XiphiasNet -> STATUS CODE: \(response.statusCode)")
                 completion(.failure(NSError(domain: "response error", code: response.statusCode, userInfo: nil)))
                 return
             }
@@ -82,7 +82,7 @@ public extension KamaalNetworker {
     }
 }
 
-private extension KamaalNetworker {
+private extension XiphiasNet {
     func analys(_ message: String) {
         if kowalskiAnalysis {
             print(message)

@@ -1,7 +1,7 @@
 import XCTest
-@testable import KamaalNetworker
+@testable import XiphiasNet
 
-final class KamaalNetworkerTests: XCTestCase {
+final class XiphiasNetTests: XCTestCase {
     func testExample() {
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct

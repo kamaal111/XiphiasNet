@@ -1,7 +1,7 @@
 import XCTest
 
-import KamaalNetworkerTests
+import XiphiasNetTests
 
 var tests = [XCTestCaseEntry]()
-tests += KamaalNetworkerTests.allTests()
+tests += XiphiasNetTests.allTests()
 XCTMain(tests)
