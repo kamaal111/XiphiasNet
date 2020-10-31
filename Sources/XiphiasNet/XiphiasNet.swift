@@ -77,7 +77,7 @@ private extension XiphiasNet {
             return
         }
         self.analys("XiphiasNet -> JSON RESPONSE: \(jsonString)")
-        if let response = response as? HTTPURLResponse, response.statusCode != 200 {
+        if let response = response as? HTTPURLResponse, response.statusCode >= 400 {
             let error = NetworkerErrors.responseError(message: "response code error",
                                                       code: response.statusCode)
             completion(.failure(error))
@@ -102,7 +102,7 @@ private extension XiphiasNet {
                 completion(.failure(error))
                 return
             }
-            if let response = response as? HTTPURLResponse, response.statusCode != 200 {
+            if let response = response as? HTTPURLResponse, response.statusCode >= 400 {
                 let error = NetworkerErrors.responseError(message: "response code error",
                                                           code: response.statusCode)
                 completion(.failure(error))
