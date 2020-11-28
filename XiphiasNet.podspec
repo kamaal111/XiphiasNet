@@ -1,7 +1,7 @@
 Pod::Spec.new do |spec|
 
   spec.name         = "XiphiasNet"
-  spec.version      = "3.0.3"
+  spec.version      = "3.0.4"
   spec.summary      = "A simple network layer"
 
   spec.description  = <<-DESC
