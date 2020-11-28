@@ -26,31 +26,23 @@ public struct XiphiasNet: XiphiasNetable {
 
 public extension XiphiasNet {
     func loadImage(from imageUrl: URL, completion: @escaping (Result<Data, Error>) -> Void) {
-        requestData(from: imageUrl) { (result: Result<Data, Error>) in
-            completion(result)
-        }
+        _requestData(from: imageUrl, completion: completion)
     }
 
     func requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void) {
-        _requestData(from: url) { (result: Result<Data, Error>) in
-            completion(result)
-        }
+        _requestData(from: url, completion: completion)
     }
 
     func request<T: Codable>(from urlRequest: URLRequest, completion: @escaping (Result<T, Error>) -> Void) {
         URLSession.shared.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
-            self._request(data: data, response: response, error: error) { (result: Result<T, Error>) in
-                completion(result)
-            }
+            self._request(data: data, response: response, error: error, completion: completion)
         }
         .resume()
     }
 
     func request<T: Codable>(from url: URL, completion: @escaping (Result<T, Error>) -> Void) {
         URLSession.shared.dataTask(with: url) { (data: Data?, response: URLResponse?, error: Error?) in
-            self._request(data: data, response: response, error: error) { (result: Result<T, Error>) in
-                completion(result)
-            }
+            self._request(data: data, response: response, error: error, completion: completion)
         }
         .resume()
     }
