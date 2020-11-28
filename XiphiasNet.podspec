@@ -16,6 +16,6 @@ This CocoaPods library is a simple network layer.
   spec.swift_version = "5.2"
 
   spec.source        = { :git => "https://github.com/kamaal111/XiphiasNet.git", :tag => "#{spec.version}" }
-  spec.source_files  = "XiphiasNet/**/*.{h,m,swift}"
+  spec.source_files  = "Sources/XiphiasNet/**/*.{h,m,swift}"
 
 end
