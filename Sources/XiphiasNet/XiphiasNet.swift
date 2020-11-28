@@ -22,40 +22,27 @@ public struct XiphiasNet: XiphiasNetable {
     public init(kowalskiAnalysis: Bool = false) {
         self.kowalskiAnalysis = kowalskiAnalysis
     }
-
-    internal enum NetworkerErrors: Error {
-        case responseError(message: String, code: Int)
-        case dataError(message: String, code: Int)
-    }
 }
 
 public extension XiphiasNet {
     func loadImage(from imageUrl: URL, completion: @escaping (Result<Data, Error>) -> Void) {
-        requestData(from: imageUrl) { (result: Result<Data, Error>) in
-            completion(result)
-        }
+        _requestData(from: imageUrl, completion: completion)
     }
 
     func requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void) {
-        _requestData(from: url) { (result: Result<Data, Error>) in
-            completion(result)
-        }
+        _requestData(from: url, completion: completion)
     }
 
     func request<T: Codable>(from urlRequest: URLRequest, completion: @escaping (Result<T, Error>) -> Void) {
         URLSession.shared.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
-            self._request(data: data, response: response, error: error) { (result: Result<T, Error>) in
-                completion(result)
-            }
+            self._request(data: data, response: response, error: error, completion: completion)
         }
         .resume()
     }
 
     func request<T: Codable>(from url: URL, completion: @escaping (Result<T, Error>) -> Void) {
         URLSession.shared.dataTask(with: url) { (data: Data?, response: URLResponse?, error: Error?) in
-            self._request(data: data, response: response, error: error) { (result: Result<T, Error>) in
-                completion(result)
-            }
+            self._request(data: data, response: response, error: error, completion: completion)
         }
         .resume()
     }
@@ -68,23 +55,23 @@ private extension XiphiasNet {
             return
         }
         guard let dataResponse = data else {
-            let error = NetworkerErrors.dataError(message: "data error", code: 400)
+            let error = NetworkerErrors.dataError
             completion(.failure(error))
             return
         }
         guard let jsonString = String(data: dataResponse, encoding: .utf8) else {
-            completion(.failure(NSError(domain: "could not get json string", code: 400, userInfo: nil)))
+            completion(.failure(NetworkerErrors.notAValidJSON))
             return
         }
-        self.analys("XiphiasNet -> JSON RESPONSE: \(jsonString)")
+        analys("XiphiasNet -> JSON RESPONSE: \(jsonString)")
         if let response = response as? HTTPURLResponse, response.statusCode >= 400 {
-            let error = NetworkerErrors.responseError(message: "response code error",
+            let error = NetworkerErrors.responseError(message: jsonString,
                                                       code: response.statusCode)
             completion(.failure(error))
             return
         }
         do {
-            let jsonResponse = try self.jsonDecoder.decode(T.self, from: dataResponse)
+            let jsonResponse = try jsonDecoder.decode(T.self, from: dataResponse)
             completion(.success(jsonResponse))
         } catch let parsingError {
             completion(.failure(parsingError))
@@ -98,12 +85,12 @@ private extension XiphiasNet {
                 return
             }
             guard let dataResponse = data else {
-                let error = NetworkerErrors.dataError(message: "data error", code: 400)
+                let error = NetworkerErrors.dataError
                 completion(.failure(error))
                 return
             }
             if let response = response as? HTTPURLResponse, response.statusCode >= 400 {
-                let error = NetworkerErrors.responseError(message: "response code error",
+                let error = NetworkerErrors.responseError(message: "response error",
                                                           code: response.statusCode)
                 completion(.failure(error))
                 return
@@ -116,6 +103,27 @@ private extension XiphiasNet {
     func analys(_ message: String) {
         if kowalskiAnalysis {
             print(message)
+        }
+    }
+}
+
+public extension XiphiasNet {
+    enum NetworkerErrors: Error {
+        case responseError(message: String, code: Int)
+        case dataError
+        case notAValidJSON
+    }
+}
+
+extension XiphiasNet.NetworkerErrors: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .responseError(message: let message, code: let code):
+            return "Response error, Status code: \(code); Message: \(message)"
+        case .dataError:
+            return "Data error"
+        case .notAValidJSON:
+            return "Not a valid json"
         }
     }
 }
