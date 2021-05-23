@@ -117,28 +117,12 @@ private extension XiphiasNet {
     }
 
     func _requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void) {
-        /// - ToDo: Simplify this with Data(contentsOf: <url>)
-        URLSession.shared.dataTask(with: url) { (data: Data?, response: URLResponse?, error: Error?) in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-            guard let dataResponse = data else {
-                let error = NetworkerErrors.dataError
-                completion(.failure(error))
-                return
-            }
-            if let response = response as? HTTPURLResponse {
-                if response.statusCode >= 400 {
-                    let error = NetworkerErrors.responseError(message: "response error",
-                                                              code: response.statusCode)
-                    completion(.failure(error))
-                    return
-                }
-            }
-            completion(.success(dataResponse))
+        do {
+            let data = try Data(contentsOf: url)
+            completion(.success(data))
+        } catch {
+            completion(.failure(error))
         }
-        .resume()
     }
 
     func analys(_ message: String) {
