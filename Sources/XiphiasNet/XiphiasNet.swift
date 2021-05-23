@@ -10,10 +10,10 @@ import Foundation
 public protocol XiphiasNetable {
     func loadImage(from imageUrl: URL, completion: @escaping (Result<Data, Error>) -> Void)
     func requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void)
-    func request<T: Codable>(from request: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T, Error>) -> Void)
-    func request<T: Codable>(from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void)
-    func request<T: Codable>(from request: URL, config: XRequestConfig?, completion: @escaping (Result<T, Error>) -> Void)
-    func request<T: Codable>(from request: URL, completion: @escaping (Result<T, Error>) -> Void)
+    func request<T: Codable>(from request: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T?, Error>) -> Void)
+    func request<T: Codable>(from request: URLRequest, completion: @escaping (Result<T?, Error>) -> Void)
+    func request<T: Codable>(from request: URL, config: XRequestConfig?, completion: @escaping (Result<T?, Error>) -> Void)
+    func request<T: Codable>(from request: URL, completion: @escaping (Result<T?, Error>) -> Void)
 }
 
 public struct XRequestConfig {
@@ -49,11 +49,11 @@ public extension XiphiasNet {
         _requestData(from: url, completion: completion)
     }
 
-    func request<T: Codable>(from urlRequest: URLRequest, completion: @escaping (Result<T, Error>) -> Void) {
+    func request<T: Codable>(from urlRequest: URLRequest, completion: @escaping (Result<T?, Error>) -> Void) {
         request(from: urlRequest, config: nil, completion: completion)
     }
 
-    func request<T: Codable>(from urlRequest: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T, Error>) -> Void) {
+    func request<T: Codable>(from urlRequest: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T?, Error>) -> Void) {
         let task = URLSession.shared.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
             self._request(data: data, response: response, error: error, completion: completion)
         }
@@ -61,11 +61,11 @@ public extension XiphiasNet {
         task.resume()
     }
 
-    func request<T: Codable>(from url: URL, completion: @escaping (Result<T, Error>) -> Void) {
+    func request<T: Codable>(from url: URL, completion: @escaping (Result<T?, Error>) -> Void) {
         request(from: url, config: nil, completion: completion)
     }
 
-    func request<T: Codable>(from url: URL, config: XRequestConfig?, completion: @escaping (Result<T, Error>) -> Void) {
+    func request<T: Codable>(from url: URL, config: XRequestConfig?, completion: @escaping (Result<T?, Error>) -> Void) {
         let task = URLSession.shared.dataTask(with: url) { (data: Data?, response: URLResponse?, error: Error?) in
             self._request(data: data, response: response, error: error, completion: completion)
         }
@@ -83,7 +83,7 @@ fileprivate extension URLSessionDataTask {
 }
 
 private extension XiphiasNet {
-    func _request<T: Codable>(data: Data?, response: URLResponse?, error: Error?, completion: @escaping (Result<T, Error>) -> Void) {
+    func _request<T: Codable>(data: Data?, response: URLResponse?, error: Error?, completion: @escaping (Result<T?, Error>) -> Void) {
         if let error = error {
             completion(.failure(error))
             return
@@ -105,7 +105,8 @@ private extension XiphiasNet {
                 completion(.failure(error))
                 return
             } else if response.statusCode == 204 {
-                /// - ToDo: Make response optional and return nil in completion as success
+                completion(.success(nil))
+                return
             }
         }
         do {
