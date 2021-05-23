@@ -10,8 +10,24 @@ import Foundation
 public protocol XiphiasNetable {
     func loadImage(from imageUrl: URL, completion: @escaping (Result<Data, Error>) -> Void)
     func requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void)
+    func request<T: Codable>(from request: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T, Error>) -> Void)
     func request<T: Codable>(from request: URLRequest, completion: @escaping (Result<T, Error>) -> Void)
+    func request<T: Codable>(from request: URL, config: XRequestConfig?, completion: @escaping (Result<T, Error>) -> Void)
     func request<T: Codable>(from request: URL, completion: @escaping (Result<T, Error>) -> Void)
+}
+
+public struct XRequestConfig {
+    public let priority: Float
+
+    public init(priority: Float = URLSessionTask.defaultPriority) {
+        if priority <= .zero {
+            self.priority = URLSessionTask.lowPriority
+        } else if priority > 1 {
+            self.priority = URLSessionTask.highPriority
+        } else {
+            self.priority = priority
+        }
+    }
 }
 
 public struct XiphiasNet: XiphiasNetable {
@@ -34,17 +50,35 @@ public extension XiphiasNet {
     }
 
     func request<T: Codable>(from urlRequest: URLRequest, completion: @escaping (Result<T, Error>) -> Void) {
-        URLSession.shared.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
+        request(from: urlRequest, config: nil, completion: completion)
+    }
+
+    func request<T: Codable>(from urlRequest: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T, Error>) -> Void) {
+        let task = URLSession.shared.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
             self._request(data: data, response: response, error: error, completion: completion)
         }
-        .resume()
+        task.setConfig(with: config)
+        task.resume()
     }
 
     func request<T: Codable>(from url: URL, completion: @escaping (Result<T, Error>) -> Void) {
-        URLSession.shared.dataTask(with: url) { (data: Data?, response: URLResponse?, error: Error?) in
+        request(from: url, config: nil, completion: completion)
+    }
+
+    func request<T: Codable>(from url: URL, config: XRequestConfig?, completion: @escaping (Result<T, Error>) -> Void) {
+        let task = URLSession.shared.dataTask(with: url) { (data: Data?, response: URLResponse?, error: Error?) in
             self._request(data: data, response: response, error: error, completion: completion)
         }
-        .resume()
+        task.setConfig(with: config)
+        task.resume()
+    }
+}
+
+fileprivate extension URLSessionDataTask {
+    func setConfig(with config: XRequestConfig?) {
+        if let config = config {
+            self.priority = config.priority
+        }
     }
 }
 
@@ -64,11 +98,15 @@ private extension XiphiasNet {
             return
         }
         analys("XiphiasNet -> JSON RESPONSE: \(jsonString)")
-        if let response = response as? HTTPURLResponse, response.statusCode >= 400 {
-            let error = NetworkerErrors.responseError(message: jsonString,
-                                                      code: response.statusCode)
-            completion(.failure(error))
-            return
+        if let response = response as? HTTPURLResponse {
+            if response.statusCode >= 400 {
+                let error = NetworkerErrors.responseError(message: jsonString,
+                                                          code: response.statusCode)
+                completion(.failure(error))
+                return
+            } else if response.statusCode == 204 {
+                /// - ToDo: Make response optional and return nil in completion as success
+            }
         }
         do {
             let jsonResponse = try jsonDecoder.decode(T.self, from: dataResponse)
@@ -79,6 +117,7 @@ private extension XiphiasNet {
     }
 
     func _requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void) {
+        /// - ToDo: Simplify this with Data(contentsOf: <url>)
         URLSession.shared.dataTask(with: url) { (data: Data?, response: URLResponse?, error: Error?) in
             if let error = error {
                 completion(.failure(error))
@@ -89,11 +128,13 @@ private extension XiphiasNet {
                 completion(.failure(error))
                 return
             }
-            if let response = response as? HTTPURLResponse, response.statusCode >= 400 {
-                let error = NetworkerErrors.responseError(message: "response error",
-                                                          code: response.statusCode)
-                completion(.failure(error))
-                return
+            if let response = response as? HTTPURLResponse {
+                if response.statusCode >= 400 {
+                    let error = NetworkerErrors.responseError(message: "response error",
+                                                              code: response.statusCode)
+                    completion(.failure(error))
+                    return
+                }
             }
             completion(.success(dataResponse))
         }
