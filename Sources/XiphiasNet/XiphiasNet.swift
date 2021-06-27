@@ -17,6 +17,12 @@ public protocol XiphiasNetable {
     func request<T: Codable>(from request: URLRequest, completion: @escaping (Result<T?, XiphiasNet.Errors>) -> Void)
     func request<T: Codable>(from request: URL, config: XRequestConfig?, completion: @escaping (Result<T?, XiphiasNet.Errors>) -> Void)
     func request<T: Codable>(from request: URL, completion: @escaping (Result<T?, XiphiasNet.Errors>) -> Void)
+    #if canImport(Combine)
+    @available(macOS 10.15.0, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    func requestPublisher<T: Codable>(from urlRequest: URLRequest) -> AnyPublisher<T?, Error>
+    @available(macOS 10.15.0, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    func requestPublisher<T: Codable>(from url: URL) -> AnyPublisher<T?, Error>
+    #endif
 }
 
 public struct XRequestConfig {
@@ -80,11 +86,15 @@ public extension XiphiasNet {
             })
             .eraseToAnyPublisher()
     }
+
+    @available(macOS 10.15.0, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    func requestPublisher<T: Codable>(from url: URL) -> AnyPublisher<T?, Error> {
+        requestPublisher(from: url.request)
+    }
     #endif
 
     func request<T: Codable>(from url: URL, config: XRequestConfig?, completion: @escaping (Result<T?, Errors>) -> Void) {
-        let urlRequest = URLRequest(url: url)
-        request(from: urlRequest, config: config, completion: completion)
+        request(from: url.request, config: config, completion: completion)
     }
 
     func request<T: Codable>(from urlRequest: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T?, Errors>) -> Void) {
@@ -96,11 +106,17 @@ public extension XiphiasNet {
     }
 }
 
-fileprivate extension URLSessionDataTask {
+private extension URLSessionDataTask {
     func setConfig(with config: XRequestConfig?) {
         if let config = config {
             self.priority = config.priority
         }
+    }
+}
+
+private extension URL {
+    var request: URLRequest {
+        URLRequest(url: self)
     }
 }
 
