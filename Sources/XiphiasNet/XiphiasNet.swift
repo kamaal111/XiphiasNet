@@ -71,18 +71,11 @@ public extension XiphiasNet {
     func requestPublisher<T: Codable>(from urlRequest: URLRequest) -> AnyPublisher<T?, Error> {
         URLSession.shared.dataTaskPublisher(for: urlRequest)
             .tryMap({ (output: URLSession.DataTaskPublisher.Output) -> T? in
-                if let response = output.response as? HTTPURLResponse {
-                    if response.statusCode >= 400 {
-                        guard let jsonString = String(data: output.data, encoding: .utf8) else {
-                            throw Errors.notAValidJSON
-                        }
-                        throw Errors.responseError(message: jsonString, code: response.statusCode)
-                    } else if response.statusCode == 204 {
-                        return nil
-                    }
+                let transformedResponseResult: Result<T?, Errors> = transformResponseOutput(output.response, output.data)
+                switch transformedResponseResult {
+                case .failure(let failure): throw failure
+                case .success(let success): return success
                 }
-                let jsonResponse = try jsonDecoder.decode(T.self, from: output.data)
-                return jsonResponse
             })
             .eraseToAnyPublisher()
     }
@@ -126,30 +119,36 @@ private extension XiphiasNet {
             completion(.failure(.generalError(error: error)))
             return
         }
-        guard let dataResponse = data else {
-            completion(.failure(.dataError))
-            return
-        }
-        guard let jsonString = String(data: dataResponse, encoding: .utf8) else {
+        guard let data = data, let response = response  else {
             completion(.failure(.notAValidJSON))
             return
+        }
+        let transformedResponseResult: Result<T?, Errors> = transformResponseOutput(response, data)
+        switch transformedResponseResult {
+        case .failure(let failure): completion(.failure(failure))
+        case .success(let success): completion(.success(success))
+        }
+    }
+
+    func transformResponseOutput<T: Codable>(_ response: URLResponse, _ data: Data) -> Result<T?, Errors> {
+        guard let jsonString = String(data: data, encoding: .utf8) else {
+            return .failure(.notAValidJSON)
         }
         analys("XiphiasNet -> JSON RESPONSE: \(jsonString)")
         if let response = response as? HTTPURLResponse {
             if response.statusCode >= 400 {
-                completion(.failure(.responseError(message: jsonString, code: response.statusCode)))
-                return
+                return .failure(.responseError(message: jsonString, code: response.statusCode))
             } else if response.statusCode == 204 {
-                completion(.success(nil))
-                return
+                 return .success(nil)
             }
         }
+        let jsonResponse: T
         do {
-            let jsonResponse = try jsonDecoder.decode(T.self, from: dataResponse)
-            completion(.success(jsonResponse))
+            jsonResponse = try jsonDecoder.decode(T.self, from: data)
         } catch {
-            completion(.failure(.parsingError(error: error)))
+            return .failure(.parsingError(error: error))
         }
+        return .success(jsonResponse)
     }
 
     func _requestData(from url: URL, completion: @escaping (Result<Data, Errors>) -> Void) {
@@ -172,7 +171,6 @@ public extension XiphiasNet {
     enum Errors: Error {
         case generalError(error: Error)
         case responseError(message: String, code: Int)
-        case dataError
         case notAValidJSON
         case parsingError(error: Error)
     }
@@ -183,8 +181,6 @@ extension XiphiasNet.Errors: LocalizedError {
         switch self {
         case .responseError(message: let message, code: let code):
             return "Response error, Status code: \(code); Message: \(message)"
-        case .dataError:
-            return "Data error"
         case .notAValidJSON:
             return "Not a valid json"
         case .generalError(error: let error):
