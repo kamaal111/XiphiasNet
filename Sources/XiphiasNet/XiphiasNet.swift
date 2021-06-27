@@ -8,12 +8,12 @@
 import Foundation
 
 public protocol XiphiasNetable {
-    func loadImage(from imageUrl: URL, completion: @escaping (Result<Data, Error>) -> Void)
-    func requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void)
-    func request<T: Codable>(from request: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T?, Error>) -> Void)
-    func request<T: Codable>(from request: URLRequest, completion: @escaping (Result<T?, Error>) -> Void)
-    func request<T: Codable>(from request: URL, config: XRequestConfig?, completion: @escaping (Result<T?, Error>) -> Void)
-    func request<T: Codable>(from request: URL, completion: @escaping (Result<T?, Error>) -> Void)
+    func loadImage(from imageUrl: URL, completion: @escaping (Result<Data, XiphiasNet.Errors>) -> Void)
+    func requestData(from url: URL, completion: @escaping (Result<Data, XiphiasNet.Errors>) -> Void)
+    func request<T: Codable>(from request: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T?, XiphiasNet.Errors>) -> Void)
+    func request<T: Codable>(from request: URLRequest, completion: @escaping (Result<T?, XiphiasNet.Errors>) -> Void)
+    func request<T: Codable>(from request: URL, config: XRequestConfig?, completion: @escaping (Result<T?, XiphiasNet.Errors>) -> Void)
+    func request<T: Codable>(from request: URL, completion: @escaping (Result<T?, XiphiasNet.Errors>) -> Void)
 }
 
 public struct XRequestConfig {
@@ -41,32 +41,29 @@ public struct XiphiasNet: XiphiasNetable {
 }
 
 public extension XiphiasNet {
-    func loadImage(from imageUrl: URL, completion: @escaping (Result<Data, Error>) -> Void) {
+    func loadImage(from imageUrl: URL, completion: @escaping (Result<Data, Errors>) -> Void) {
         _requestData(from: imageUrl, completion: completion)
     }
 
-    func requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void) {
+    func requestData(from url: URL, completion: @escaping (Result<Data, Errors>) -> Void) {
         _requestData(from: url, completion: completion)
     }
 
-    func request<T: Codable>(from urlRequest: URLRequest, completion: @escaping (Result<T?, Error>) -> Void) {
+    func request<T: Codable>(from urlRequest: URLRequest, completion: @escaping (Result<T?, Errors>) -> Void) {
         request(from: urlRequest, config: nil, completion: completion)
     }
 
-    func request<T: Codable>(from urlRequest: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T?, Error>) -> Void) {
-        let task = URLSession.shared.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
-            self._request(data: data, response: response, error: error, completion: completion)
-        }
-        task.setConfig(with: config)
-        task.resume()
-    }
-
-    func request<T: Codable>(from url: URL, completion: @escaping (Result<T?, Error>) -> Void) {
+    func request<T: Codable>(from url: URL, completion: @escaping (Result<T?, Errors>) -> Void) {
         request(from: url, config: nil, completion: completion)
     }
 
-    func request<T: Codable>(from url: URL, config: XRequestConfig?, completion: @escaping (Result<T?, Error>) -> Void) {
-        let task = URLSession.shared.dataTask(with: url) { (data: Data?, response: URLResponse?, error: Error?) in
+    func request<T: Codable>(from url: URL, config: XRequestConfig?, completion: @escaping (Result<T?, Errors>) -> Void) {
+        let urlRequest = URLRequest(url: url)
+        request(from: urlRequest, config: config, completion: completion)
+    }
+
+    func request<T: Codable>(from urlRequest: URLRequest, config: XRequestConfig?, completion: @escaping (Result<T?, Errors>) -> Void) {
+        let task = URLSession.shared.dataTask(with: urlRequest) { (data: Data?, response: URLResponse?, error: Error?) in
             self._request(data: data, response: response, error: error, completion: completion)
         }
         task.setConfig(with: config)
@@ -83,26 +80,23 @@ fileprivate extension URLSessionDataTask {
 }
 
 private extension XiphiasNet {
-    func _request<T: Codable>(data: Data?, response: URLResponse?, error: Error?, completion: @escaping (Result<T?, Error>) -> Void) {
+    func _request<T: Codable>(data: Data?, response: URLResponse?, error: Error?, completion: @escaping (Result<T?, Errors>) -> Void) {
         if let error = error {
-            completion(.failure(error))
+            completion(.failure(.generalError(error: error)))
             return
         }
         guard let dataResponse = data else {
-            let error = NetworkerErrors.dataError
-            completion(.failure(error))
+            completion(.failure(.dataError))
             return
         }
         guard let jsonString = String(data: dataResponse, encoding: .utf8) else {
-            completion(.failure(NetworkerErrors.notAValidJSON))
+            completion(.failure(.notAValidJSON))
             return
         }
         analys("XiphiasNet -> JSON RESPONSE: \(jsonString)")
         if let response = response as? HTTPURLResponse {
             if response.statusCode >= 400 {
-                let error = NetworkerErrors.responseError(message: jsonString,
-                                                          code: response.statusCode)
-                completion(.failure(error))
+                completion(.failure(.responseError(message: jsonString, code: response.statusCode)))
                 return
             } else if response.statusCode == 204 {
                 completion(.success(nil))
@@ -112,17 +106,17 @@ private extension XiphiasNet {
         do {
             let jsonResponse = try jsonDecoder.decode(T.self, from: dataResponse)
             completion(.success(jsonResponse))
-        } catch let parsingError {
-            completion(.failure(parsingError))
+        } catch {
+            completion(.failure(.parsingError(error: error)))
         }
     }
 
-    func _requestData(from url: URL, completion: @escaping (Result<Data, Error>) -> Void) {
+    func _requestData(from url: URL, completion: @escaping (Result<Data, Errors>) -> Void) {
         do {
             let data = try Data(contentsOf: url)
             completion(.success(data))
         } catch {
-            completion(.failure(error))
+            completion(.failure(.generalError(error: error)))
         }
     }
 
@@ -134,14 +128,16 @@ private extension XiphiasNet {
 }
 
 public extension XiphiasNet {
-    enum NetworkerErrors: Error {
+    enum Errors: Error {
+        case generalError(error: Error)
         case responseError(message: String, code: Int)
         case dataError
         case notAValidJSON
+        case parsingError(error: Error)
     }
 }
 
-extension XiphiasNet.NetworkerErrors: LocalizedError {
+extension XiphiasNet.Errors: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .responseError(message: let message, code: let code):
@@ -150,6 +146,10 @@ extension XiphiasNet.NetworkerErrors: LocalizedError {
             return "Data error"
         case .notAValidJSON:
             return "Not a valid json"
+        case .generalError(error: let error):
+            return "General error; \(error.localizedDescription); \(error)"
+        case .parsingError(error: let error):
+            return "Parsing error; \(error.localizedDescription); \(error)"
         }
     }
 }
