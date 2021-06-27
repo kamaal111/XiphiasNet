@@ -6,6 +6,9 @@
 //
 
 import Foundation
+#if canImport(Combine)
+import Combine
+#endif
 
 public protocol XiphiasNetable {
     func loadImage(from imageUrl: URL, completion: @escaping (Result<Data, XiphiasNet.Errors>) -> Void)
@@ -56,6 +59,28 @@ public extension XiphiasNet {
     func request<T: Codable>(from url: URL, completion: @escaping (Result<T?, Errors>) -> Void) {
         request(from: url, config: nil, completion: completion)
     }
+
+    #if canImport(Combine)
+    @available(macOS 10.15.0, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    func requestPublisher<T: Codable>(from urlRequest: URLRequest) -> AnyPublisher<T?, Error> {
+        URLSession.shared.dataTaskPublisher(for: urlRequest)
+            .tryMap({ (output: URLSession.DataTaskPublisher.Output) -> T? in
+                if let response = output.response as? HTTPURLResponse {
+                    if response.statusCode >= 400 {
+                        guard let jsonString = String(data: output.data, encoding: .utf8) else {
+                            throw Errors.notAValidJSON
+                        }
+                        throw Errors.responseError(message: jsonString, code: response.statusCode)
+                    } else if response.statusCode == 204 {
+                        return nil
+                    }
+                }
+                let jsonResponse = try jsonDecoder.decode(T.self, from: output.data)
+                return jsonResponse
+            })
+            .eraseToAnyPublisher()
+    }
+    #endif
 
     func request<T: Codable>(from url: URL, config: XRequestConfig?, completion: @escaping (Result<T?, Errors>) -> Void) {
         let urlRequest = URLRequest(url: url)
