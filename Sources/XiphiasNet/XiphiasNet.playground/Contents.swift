@@ -20,15 +20,45 @@ public struct HTTPMethod: RawRepresentable {
     public static let trace = HTTPMethod(rawValue: "TRACE")
 }
 
+public struct Response<T: Decodable> {
+    public let data: T
+    public let status: Int?
+
+    public init(data: T, status: Int?) {
+        self.data = data
+        self.status = status
+    }
+}
+
 public struct Networker {
     private init() { }
 
-    public static func request<T: Codable>(
+    public static func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
         config: XRequestConfig? = nil,
-        completion: @escaping (Result<T, XiphiasNet.Errors>) -> Void) {
+        responseType: T,
+        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
+        request(from: url, method: method, payload: payload, config: config, completion: completion)
+    }
+
+    public static func request<T: Decodable>(
+        from urlString: String,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        config: XRequestConfig? = nil,
+        responseType: T.Type,
+        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
+        request(from: urlString, method: method, payload: payload, config: config, completion: completion)
+    }
+
+    private static func request<T: Decodable>(
+        from url: URL,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        config: XRequestConfig? = nil,
+        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
 
@@ -46,22 +76,12 @@ public struct Networker {
         task.resume()
     }
 
-    public static func request<T: Codable>(
-        from url: URL,
-        method: HTTPMethod = .get,
-        payload: [String: Any]? = nil,
-        ofType type: T,
-        config: XRequestConfig? = nil,
-        completion: @escaping (Result<T, XiphiasNet.Errors>) -> Void) {
-        request(from: url, method: method, payload: payload, config: config, completion: completion)
-    }
-
-    public static func request<T: Codable>(
+    private static func request<T: Decodable>(
         from urlString: String,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
         config: XRequestConfig? = nil,
-        completion: @escaping (Result<T, XiphiasNet.Errors>) -> Void) {
+        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
         guard let url = URL(string: urlString) else {
             completion(.failure(.invalidURL(url: urlString)))
             return
@@ -69,21 +89,11 @@ public struct Networker {
         request(from: url, method: method, payload: payload, config: config, completion: completion)
     }
 
-    public static func request<T: Codable>(
-        from urlString: String,
-        method: HTTPMethod = .get,
-        payload: [String: Any]? = nil,
-        ofType type: T,
-        config: XRequestConfig? = nil,
-        completion: @escaping (Result<T, XiphiasNet.Errors>) -> Void) {
-        request(from: urlString, method: method, payload: payload, config: config, completion: completion)
-    }
-
-    private static func handleDataTask<T: Codable>(
+    private static func handleDataTask<T: Decodable>(
         data: Data?,
         response: URLResponse?,
         error: Error?,
-        completion: @escaping (Result<T, XiphiasNet.Errors>) -> Void) {
+        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
         if let error = error {
             completion(.failure(.generalError(error: error)))
             return
@@ -94,46 +104,52 @@ public struct Networker {
             return
         }
 
-        let transformedResponseResult: Result<T, XiphiasNet.Errors> = self.transformResponseOutput(response, data)
+        let transformedResponseResult: Result<Response<T>, XiphiasNet.Errors> = self.transformResponseOutput(response, data)
         switch transformedResponseResult {
         case .failure(let failure): completion(.failure(failure))
         case .success(let success): completion(.success(success))
         }
     }
 
-    private static func transformResponseOutput<T: Codable>(_ response: URLResponse, _ data: Data) -> Result<T, XiphiasNet.Errors> {
+    private static func transformResponseOutput<T: Decodable>(_ response: URLResponse, _ data: Data) -> Result<Response<T>, XiphiasNet.Errors> {
         guard let jsonString = String(data: data, encoding: .utf8) else {
             return .failure(.notAValidJSON)
         }
 
+        var statusCode: Int?
+        if let response = response as? HTTPURLResponse {
+            statusCode = response.statusCode
+            guard response.statusCode < 400 else { return .failure(.responseError(message: jsonString, code: response.statusCode)) }
+        }
         if let response = response as? HTTPURLResponse, response.statusCode >= 400 {
             return .failure(.responseError(message: jsonString, code: response.statusCode))
         }
 
-        let jsonResponse: T
+        let decodedResponse: T
         do {
-            jsonResponse = try JSONDecoder().decode(T.self, from: data)
+            decodedResponse = try JSONDecoder().decode(T.self, from: data)
         } catch {
             return .failure(.parsingError(error: error))
         }
-        return .success(jsonResponse)
+        let response = Response(data: decodedResponse, status: statusCode)
+        return .success(response)
     }
 }
 
 let config = XRequestConfig(priority: URLSessionTask.defaultPriority)
 
-struct RootResponse: Codable {
+struct RootResponse: Decodable {
     let hello: String
 }
 
-Networker.request(from: "http://localhost:8081", method: .get, config: config) { (result: Result<RootResponse, XiphiasNet.Errors>) in
-    print("Networker", result)
+Networker.request(from: "http://localhost:8081", method: .get, config: config, responseType: RootResponse.self) { result in
+    print(result)
 }
 
 struct PostResponse: Codable {
     let title: String
 }
 
-Networker.request(from: "http://localhost:8081/post", method: .post, payload: ["title": "ABC"], config: config) { (result: Result<PostResponse, XiphiasNet.Errors>) in
-    print("Networker", result)
+Networker.request(from: "http://localhost:8081/post", method: .post, payload: ["title": "ABC"], config: config, responseType: PostResponse.self) { result in
+    print(result)
 }
