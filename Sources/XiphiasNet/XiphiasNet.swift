@@ -91,7 +91,9 @@ public class XiphiasNet {
             .eraseToAnyPublisher()
     }
     #endif
+}
 
+extension XiphiasNet {
     private static func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
@@ -183,86 +185,5 @@ public class XiphiasNet {
         }
         let response = Response(data: decodedResponse, status: statusCode)
         return .success(response)
-    }
-}
-
-public extension XiphiasNet {
-    enum Errors: Error {
-        case generalError(error: Error)
-        case responseError(message: String, code: Int)
-        case notAValidJSON
-        case parsingError(error: Error)
-        case invalidURL(url: String)
-    }
-}
-
-extension XiphiasNet.Errors: LocalizedError {
-    public var errorDescription: String? {
-        switch self {
-        case .responseError(message: let message, code: let code):
-            return "Response error, Status code: \(code); Message: \(message)"
-        case .notAValidJSON:
-            return "Not a valid json"
-        case .generalError(error: let error):
-            return "General error; \(error.localizedDescription); \(error)"
-        case .parsingError(error: let error):
-            return "Parsing error; \(error.localizedDescription); \(error)"
-        case .invalidURL(url: let url):
-            return "Provided a invalid URL of \(url)"
-        }
-    }
-}
-
-public struct Response<T: Decodable> {
-    public let data: T
-    public let status: Int?
-
-    public init(data: T, status: Int?) {
-        self.data = data
-        self.status = status
-    }
-}
-
-public struct HTTPMethod: RawRepresentable {
-    public let rawValue: String
-
-    public init(rawValue: String) {
-        self.rawValue = rawValue
-    }
-
-    public typealias RawValue = String
-
-    public static let get = HTTPMethod(rawValue: "GET")
-    public static let head = HTTPMethod(rawValue: "HEAD")
-    public static let post = HTTPMethod(rawValue: "POST")
-    public static let put = HTTPMethod(rawValue: "PUT")
-    public static let delete = HTTPMethod(rawValue: "DELETE")
-    public static let connect = HTTPMethod(rawValue: "CONNECT")
-    public static let options = HTTPMethod(rawValue: "OPTIONS")
-    public static let trace = HTTPMethod(rawValue: "TRACE")
-}
-
-public struct XRequestConfig {
-    /// The relative priority at which you’d like a host to handle the task, specified as a floating point value between 0.0 (lowest priority) and 1.0 (highest priority).
-    public let priority: Float
-    public let kowalskiAnalysis: Bool
-
-    public init(priority: Float = URLSessionTask.defaultPriority, kowalskiAnalysis: Bool = false) {
-        if priority <= .zero {
-            self.priority = URLSessionTask.lowPriority
-        } else if priority > 1 {
-            self.priority = URLSessionTask.highPriority
-        } else {
-            self.priority = priority
-        }
-        self.kowalskiAnalysis = kowalskiAnalysis
-    }
-}
-
-private extension URLSessionDataTask {
-    func setConfig(with config: XRequestConfig?) {
-        if let config = config {
-            self.priority = config.priority
-        }
     }
 }
