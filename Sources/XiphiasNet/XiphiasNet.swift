@@ -26,6 +26,7 @@ public protocol XiphiasNetable {
 }
 
 public struct XRequestConfig {
+    /// The relative priority at which you’d like a host to handle the task, specified as a floating point value between 0.0 (lowest priority) and 1.0 (highest priority).
     public let priority: Float
 
     public init(priority: Float = URLSessionTask.defaultPriority) {
@@ -173,6 +174,7 @@ public extension XiphiasNet {
         case responseError(message: String, code: Int)
         case notAValidJSON
         case parsingError(error: Error)
+        case invalidURL(url: String)
     }
 }
 
@@ -187,6 +189,8 @@ extension XiphiasNet.Errors: LocalizedError {
             return "General error; \(error.localizedDescription); \(error)"
         case .parsingError(error: let error):
             return "Parsing error; \(error.localizedDescription); \(error)"
+        case .invalidURL(url: let url):
+            return "Provided a invalid URL of \(url)"
         }
     }
 }
