@@ -37,30 +37,34 @@ public struct Networker {
         from url: URL,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
         config: XRequestConfig? = nil,
-        responseType: T,
+        responseType: T.Type,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
-        request(from: url, method: method, payload: payload, config: config, completion: completion)
+        request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
 
     public static func request<T: Decodable>(
         from urlString: String,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
         config: XRequestConfig? = nil,
         responseType: T.Type,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
-        request(from: urlString, method: method, payload: payload, config: config, completion: completion)
+        request(from: urlString, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
 
     private static func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
         config: XRequestConfig? = nil,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
+        request.allHTTPHeaderFields = headers
 
         if let payload = payload, !payload.isEmpty {
             let jsonData = try? JSONSerialization.data(withJSONObject: payload)
@@ -68,7 +72,7 @@ public struct Networker {
         }
 
         let task = URLSession.shared.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
-            Self.handleDataTask(data: data, response: response, error: error, completion: completion)
+            Self.handleDataTask(data: data, response: response, error: error, kowalskiAnalysis: config?.kowalskiAnalysis ?? false, completion: completion)
         }
         if let config = config {
             task.priority = config.priority
@@ -80,19 +84,21 @@ public struct Networker {
         from urlString: String,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
         config: XRequestConfig? = nil,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
         guard let url = URL(string: urlString) else {
             completion(.failure(.invalidURL(url: urlString)))
             return
         }
-        request(from: url, method: method, payload: payload, config: config, completion: completion)
+        request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
 
     private static func handleDataTask<T: Decodable>(
         data: Data?,
         response: URLResponse?,
         error: Error?,
+        kowalskiAnalysis: Bool = false,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
         if let error = error {
             completion(.failure(.generalError(error: error)))
@@ -104,16 +110,20 @@ public struct Networker {
             return
         }
 
-        let transformedResponseResult: Result<Response<T>, XiphiasNet.Errors> = self.transformResponseOutput(response, data)
+        let transformedResponseResult: Result<Response<T>, XiphiasNet.Errors> = self.transformResponseOutput(response, data, kowalskiAnalysis: kowalskiAnalysis)
         switch transformedResponseResult {
         case .failure(let failure): completion(.failure(failure))
         case .success(let success): completion(.success(success))
         }
     }
 
-    private static func transformResponseOutput<T: Decodable>(_ response: URLResponse, _ data: Data) -> Result<Response<T>, XiphiasNet.Errors> {
+    private static func transformResponseOutput<T: Decodable>(_ response: URLResponse, _ data: Data, kowalskiAnalysis: Bool = false) -> Result<Response<T>, XiphiasNet.Errors> {
         guard let jsonString = String(data: data, encoding: .utf8) else {
             return .failure(.notAValidJSON)
+        }
+
+        if kowalskiAnalysis {
+            print("JSON STRING RESPONSE", jsonString)
         }
 
         var statusCode: Int?
@@ -136,20 +146,29 @@ public struct Networker {
     }
 }
 
-let config = XRequestConfig(priority: URLSessionTask.defaultPriority)
+let config = XRequestConfig(priority: URLSessionTask.defaultPriority, kowalskiAnalysis: false)
+let url = URL(string: "http://localhost:8081")!
 
 struct RootResponse: Decodable {
     let hello: String
 }
 
-Networker.request(from: "http://localhost:8081", method: .get, config: config, responseType: RootResponse.self) { result in
+Networker.request(from: url, method: .get, config: config, responseType: RootResponse.self) { result in
     print(result)
 }
 
-struct PostResponse: Codable {
+struct PostResponse: Decodable {
     let title: String
 }
 
-Networker.request(from: "http://localhost:8081/post", method: .post, payload: ["title": "ABC"], config: config, responseType: PostResponse.self) { result in
+Networker.request(from: url.appendingPathComponent("post"), method: .post, payload: ["title": "ABC"], config: config, responseType: PostResponse.self) { result in
+    print(result)
+}
+
+struct HeadResponse: Decodable {
+    let Superheader: [String]
+}
+
+Networker.request(from: url.appendingPathComponent("headers"), method: .post, headers: ["SuperHeader": "Yes"], config: config, responseType: HeadResponse.self) { result in
     print(result)
 }
