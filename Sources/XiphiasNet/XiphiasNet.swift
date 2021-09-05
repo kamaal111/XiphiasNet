@@ -98,13 +98,12 @@ public class XiphiasNet {
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
         headers: [String: String]? = nil,
-        responseType: T.Type,
         config: XRequestConfig? = nil) -> AnyPublisher<Response<T>, Error> {
         let request = setupURLRequest(url: url, method: method, payload: payload, headers: headers)
 
         return URLSession.shared.dataTaskPublisher(for: request)
             .tryMap({ (output: URLSession.DataTaskPublisher.Output) -> Response<T> in
-                let transformedResponseResult: Result<Response<T>, Errors> = transformResponseOutput(
+                let transformedResponseResult: Result<Response<T>, XiphiasNet.Errors> = transformResponseOutput(
                     response: output.response,
                     data: output.data,
                     kowalskiAnalysis: config?.kowalskiAnalysis ?? false)
@@ -114,6 +113,17 @@ public class XiphiasNet {
                 }
             })
             .eraseToAnyPublisher()
+    }
+
+    @available(macOS 10.15.0, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
+    public static func requestPublisher<T: Decodable>(
+        from url: URL,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
+        responseType: T.Type,
+        config: XRequestConfig? = nil) -> AnyPublisher<Response<T>, Error> {
+        requestPublisher(from: url, method: method, payload: payload, headers: headers, config: config)
     }
     #endif
 }
