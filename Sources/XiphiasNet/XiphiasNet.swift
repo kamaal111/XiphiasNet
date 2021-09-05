@@ -43,6 +43,38 @@ public class XiphiasNet {
         payload: [String: Any]? = nil,
         headers: [String: String]? = nil,
         config: XRequestConfig? = nil,
+        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
+        let request = setupURLRequest(url: url, method: method, payload: payload, headers: headers)
+
+        let task = URLSession.shared.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
+            handleDataTask(data: data, response: response, error: error, kowalskiAnalysis: config?.kowalskiAnalysis ?? false, completion: completion)
+        }
+
+        task.setConfig(with: config)
+
+        task.resume()
+    }
+
+    public static func request<T: Decodable>(
+        from urlString: String,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil,
+        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
+        guard let url = URL(string: urlString) else {
+            completion(.failure(.invalidURL(url: urlString)))
+            return
+        }
+        request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
+    }
+
+    public static func request<T: Decodable>(
+        from url: URL,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil,
         responseType: T.Type,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
         request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
@@ -93,38 +125,6 @@ extension XiphiasNet {
         request.allHTTPHeaderFields = headers
         request.httpBody = payload?.asData
         return request
-    }
-
-    private static func request<T: Decodable>(
-        from url: URL,
-        method: HTTPMethod = .get,
-        payload: [String: Any]? = nil,
-        headers: [String: String]? = nil,
-        config: XRequestConfig? = nil,
-        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
-        let request = setupURLRequest(url: url, method: method, payload: payload, headers: headers)
-
-        let task = URLSession.shared.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
-            handleDataTask(data: data, response: response, error: error, kowalskiAnalysis: config?.kowalskiAnalysis ?? false, completion: completion)
-        }
-
-        task.setConfig(with: config)
-
-        task.resume()
-    }
-
-    private static func request<T: Decodable>(
-        from urlString: String,
-        method: HTTPMethod = .get,
-        payload: [String: Any]? = nil,
-        headers: [String: String]? = nil,
-        config: XRequestConfig? = nil,
-        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
-        guard let url = URL(string: urlString) else {
-            completion(.failure(.invalidURL(url: urlString)))
-            return
-        }
-        request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
 
     private static func handleDataTask<T: Decodable>(
