@@ -12,14 +12,18 @@ public struct XRequestConfig {
     public let priority: Float
     public let kowalskiAnalysis: Bool
 
-    public init(priority: Float = URLSessionTask.defaultPriority, kowalskiAnalysis: Bool = false) {
+    public init(priority: Float = XRequestConfig.defaultPriority, kowalskiAnalysis: Bool = false) {
         if priority <= .zero {
-            self.priority = URLSessionTask.lowPriority
+            self.priority = XRequestConfig.lowPriority
         } else if priority > 1 {
-            self.priority = URLSessionTask.highPriority
+            self.priority = XRequestConfig.highPriority
         } else {
             self.priority = priority
         }
         self.kowalskiAnalysis = kowalskiAnalysis
     }
+
+    public static let lowPriority: Float = 0
+    public static let defaultPriority: Float = 0.5
+    public static let highPriority: Float = 1
 }
