@@ -68,14 +68,7 @@ public class XiphiasNet {
         headers: [String: String]? = nil,
         responseType: T.Type,
         config: XRequestConfig? = nil) -> AnyPublisher<Response<T>, Error> {
-        var request = URLRequest(url: url)
-        request.httpMethod = method.rawValue
-        request.allHTTPHeaderFields = headers
-
-        if let payload = payload, !payload.isEmpty {
-            let jsonData = try? JSONSerialization.data(withJSONObject: payload)
-            request.httpBody = jsonData
-        }
+        let request = setupURLRequest(url: url, method: method, payload: payload, headers: headers)
 
         return URLSession.shared.dataTaskPublisher(for: request)
             .tryMap({ (output: URLSession.DataTaskPublisher.Output) -> Response<T> in
@@ -94,6 +87,14 @@ public class XiphiasNet {
 }
 
 extension XiphiasNet {
+    private static func setupURLRequest(url: URL, method: HTTPMethod, payload: [String: Any]?, headers: [String: String]?) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = method.rawValue
+        request.allHTTPHeaderFields = headers
+        request.httpBody = payload?.asData
+        return request
+    }
+
     private static func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
@@ -101,14 +102,7 @@ extension XiphiasNet {
         headers: [String: String]? = nil,
         config: XRequestConfig? = nil,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
-        var request = URLRequest(url: url)
-        request.httpMethod = method.rawValue
-        request.allHTTPHeaderFields = headers
-
-        if let payload = payload, !payload.isEmpty {
-            let jsonData = try? JSONSerialization.data(withJSONObject: payload)
-            request.httpBody = jsonData
-        }
+        let request = setupURLRequest(url: url, method: method, payload: payload, headers: headers)
 
         let task = URLSession.shared.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
             handleDataTask(data: data, response: response, error: error, kowalskiAnalysis: config?.kowalskiAnalysis ?? false, completion: completion)
