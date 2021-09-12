@@ -40,7 +40,7 @@ public class XiphiasNet {
     public static func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
-        payload: Data? = nil,
+        payload: Data?,
         headers: [String: String]? = nil,
         config: XRequestConfig? = nil,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
@@ -68,7 +68,7 @@ public class XiphiasNet {
     public static func request<T: Decodable>(
         from urlString: String,
         method: HTTPMethod = .get,
-        payload: Data? = nil,
+        payload: Data?,
         headers: [String: String]? = nil,
         config: XRequestConfig? = nil,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
