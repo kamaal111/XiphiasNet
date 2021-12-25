@@ -40,7 +40,7 @@ public class XiphiasNet {
     public static func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
-        payload: [String: Any]? = nil,
+        payload: Data?,
         headers: [String: String]? = nil,
         config: XRequestConfig? = nil,
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
@@ -53,6 +53,30 @@ public class XiphiasNet {
         task.setConfig(with: config)
 
         task.resume()
+    }
+
+    public static func request<T: Decodable>(
+        from url: URL,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil,
+        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
+        request(from: url, method: method, payload: payload?.asData, headers: headers, config: config, completion: completion)
+    }
+
+    public static func request<T: Decodable>(
+        from urlString: String,
+        method: HTTPMethod = .get,
+        payload: Data?,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil,
+        completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
+        guard let url = URL(string: urlString) else {
+            completion(.failure(.invalidURL(url: urlString)))
+            return
+        }
+        request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
 
     public static func request<T: Decodable>(
@@ -99,7 +123,7 @@ public class XiphiasNet {
         payload: [String: Any]? = nil,
         headers: [String: String]? = nil,
         config: XRequestConfig? = nil) -> AnyPublisher<Response<T>, Error> {
-        let request = setupURLRequest(url: url, method: method, payload: payload, headers: headers)
+        let request = setupURLRequest(url: url, method: method, payload: payload?.asData, headers: headers)
 
         return URLSession.shared.dataTaskPublisher(for: request)
             .tryMap({ (output: URLSession.DataTaskPublisher.Output) -> Response<T> in
@@ -129,11 +153,11 @@ public class XiphiasNet {
 }
 
 extension XiphiasNet {
-    private static func setupURLRequest(url: URL, method: HTTPMethod, payload: [String: Any]?, headers: [String: String]?) -> URLRequest {
+    private static func setupURLRequest(url: URL, method: HTTPMethod, payload: Data?, headers: [String: String]?) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.allHTTPHeaderFields = headers
-        request.httpBody = payload?.asData
+        request.httpBody = payload
         return request
     }
 
