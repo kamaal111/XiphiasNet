@@ -11,7 +11,7 @@ import Combine
 #endif
 
 public class XiphiasNet {
-    let urlSession: URLSession
+    private let urlSession: URLSession
 
     public init(urlSession: URLSession = .shared) {
         self.urlSession = urlSession
