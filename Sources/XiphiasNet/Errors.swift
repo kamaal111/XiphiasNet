@@ -8,12 +8,26 @@
 import Foundation
 
 public extension XiphiasNet {
-    enum Errors: Error {
+    enum Errors: Error, Equatable {
+        public static func == (lhs: XiphiasNet.Errors, rhs: XiphiasNet.Errors) -> Bool {
+            lhs.identifier == rhs.identifier
+        }
+
         case generalError(error: Error)
         case responseError(message: String, code: Int)
         case notAValidJSON
         case parsingError(error: Error)
         case invalidURL(url: String)
+
+        private var identifier: String {
+            switch self {
+            case .generalError(error: let error): return "general_error_\(error.localizedDescription)"
+            case .responseError(message: let message, code: let code): return "response_error_\(message)_\(code)"
+            case .notAValidJSON: return "not_a_valid_json"
+            case .parsingError(error: let error): return "parsing_error_\(error.localizedDescription)"
+            case .invalidURL(url: let url): return "invalid_url_\(url)"
+            }
+        }
     }
 }
 

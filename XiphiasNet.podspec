@@ -1,7 +1,7 @@
 Pod::Spec.new do |spec|
 
   spec.name         = "XiphiasNet"
-  spec.version      = "6.1.1"
+  spec.version      = "7.0.0"
   spec.summary      = "A simple network layer"
 
   spec.description  = <<-DESC
@@ -17,5 +17,11 @@ This CocoaPods library is a simple network layer.
 
   spec.source        = { :git => "https://github.com/kamaal111/XiphiasNet.git", :tag => "#{spec.version}" }
   spec.source_files  = "Sources/XiphiasNet/**/*.{h,m,swift}"
+
+  s.test_spec 'Tests' do |test_spec|
+    test_spec.source_files = 'Tests/*.{h,m,swift}'
+    test_spec.dependency 'Quick'
+    test_spec.dependency 'Nimble'
+  end
 
 end
