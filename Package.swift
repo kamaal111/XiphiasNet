@@ -18,12 +18,13 @@ let package = Package(
     targets: [
         .target(
             name: "XiphiasNet",
+            dependencies: []),
+        .testTarget(
+            name: "XiphiasNetTests",
             dependencies: [
+                "XiphiasNet",
                 "Quick",
                 "Nimble",
             ]),
-        .testTarget(
-            name: "XiphiasNetTests",
-            dependencies: ["XiphiasNet"]),
     ]
 )
