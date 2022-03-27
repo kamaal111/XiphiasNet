@@ -11,13 +11,20 @@ let package = Package(
             name: "XiphiasNet",
             targets: ["XiphiasNet"]),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/Quick/Quick.git", "4.0.0"..<"5.0.0"),
+        .package(url: "https://github.com/Quick/Nimble.git", "9.0.0"..<"10.0.0"),
+    ],
     targets: [
         .target(
             name: "XiphiasNet",
             dependencies: []),
         .testTarget(
             name: "XiphiasNetTests",
-            dependencies: ["XiphiasNet"]),
+            dependencies: [
+                "XiphiasNet",
+                "Quick",
+                "Nimble",
+            ]),
     ]
 )

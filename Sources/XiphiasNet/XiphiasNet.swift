@@ -11,23 +11,27 @@ import Combine
 #endif
 
 public class XiphiasNet {
-    private init() { }
+    private let urlSession: URLSession
 
-    public static func loadImage(from imageURL: URL) -> Result<Data, XiphiasNet.Errors> {
+    public init(urlSession: URLSession = .shared) {
+        self.urlSession = urlSession
+    }
+
+    public func loadImage(from imageURL: URL) -> Result<Data, XiphiasNet.Errors> {
         requestData(from: imageURL)
     }
 
-    public static func loadImage(from imageURLString: String) -> Result<Data, XiphiasNet.Errors> {
+    public func loadImage(from imageURLString: String) -> Result<Data, XiphiasNet.Errors> {
         guard let imageURL = URL(string: imageURLString) else { return .failure(.invalidURL(url: imageURLString)) }
         return requestData(from: imageURL)
     }
 
-    public static func requestData(from urlString: String) -> Result<Data, XiphiasNet.Errors> {
+    public func requestData(from urlString: String) -> Result<Data, XiphiasNet.Errors> {
         guard let url = URL(string: urlString) else { return .failure(.invalidURL(url: urlString)) }
         return requestData(from: url)
     }
 
-    public static func requestData(from url: URL) -> Result<Data, XiphiasNet.Errors> {
+    public func requestData(from url: URL) -> Result<Data, XiphiasNet.Errors> {
         let data: Data
         do {
             data = try Data(contentsOf: url)
@@ -37,7 +41,7 @@ public class XiphiasNet {
         return .success(data)
     }
 
-    public static func request<T: Decodable>(
+    public func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
         payload: Data?,
@@ -46,8 +50,13 @@ public class XiphiasNet {
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
         let request = setupURLRequest(url: url, method: method, payload: payload, headers: headers)
 
-        let task = URLSession.shared.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
-            handleDataTask(data: data, response: response, error: error, kowalskiAnalysis: config?.kowalskiAnalysis ?? false, completion: completion)
+        let task = urlSession.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
+            self.handleDataTask(
+                data: data,
+                response: response,
+                error: error,
+                kowalskiAnalysis: config?.kowalskiAnalysis ?? false,
+                completion: completion)
         }
 
         task.setConfig(with: config)
@@ -55,7 +64,25 @@ public class XiphiasNet {
         task.resume()
     }
 
-    public static func request<T: Decodable>(
+    @available(iOS 13.0.0, macOS 10.15.0, tvOS 13.0.0, watchOS 6.0.0, *)
+    public func request<T: Decodable>(
+        from url: URL,
+        method: HTTPMethod = .get,
+        payload: Data?,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil) async -> Result<Response<T>, XiphiasNet.Errors> {
+            await withCheckedContinuation({ continuation in
+                request(
+                    from: url,
+                    method: method,
+                    payload: payload,
+                    headers: headers,
+                    config: config,
+                    completion: continuation.resume(returning:))
+            })
+        }
+
+    public func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
@@ -65,7 +92,25 @@ public class XiphiasNet {
         request(from: url, method: method, payload: payload?.asData, headers: headers, config: config, completion: completion)
     }
 
-    public static func request<T: Decodable>(
+    @available(iOS 13.0.0, macOS 10.15.0, tvOS 13.0.0, watchOS 6.0.0, *)
+    public func request<T: Decodable>(
+        from url: URL,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil) async -> Result<Response<T>, XiphiasNet.Errors> {
+            await withCheckedContinuation({ continuation in
+                request(
+                    from: url,
+                    method: method,
+                    payload: payload,
+                    headers: headers,
+                    config: config,
+                    completion: continuation.resume(returning:))
+            })
+        }
+
+    public func request<T: Decodable>(
         from urlString: String,
         method: HTTPMethod = .get,
         payload: Data?,
@@ -79,7 +124,25 @@ public class XiphiasNet {
         request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
 
-    public static func request<T: Decodable>(
+    @available(iOS 13.0.0, macOS 10.15.0, tvOS 13.0.0, watchOS 6.0.0, *)
+    public func request<T: Decodable>(
+        from urlString: String,
+        method: HTTPMethod = .get,
+        payload: Data?,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil) async -> Result<Response<T>, XiphiasNet.Errors> {
+            await withCheckedContinuation({ continuation in
+                request(
+                    from: urlString,
+                    method: method,
+                    payload: payload,
+                    headers: headers,
+                    config: config,
+                    completion: continuation.resume(returning:))
+            })
+        }
+
+    public func request<T: Decodable>(
         from urlString: String,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
@@ -93,7 +156,25 @@ public class XiphiasNet {
         request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
 
-    public static func request<T: Decodable>(
+    @available(iOS 13.0.0, macOS 10.15.0, tvOS 13.0.0, watchOS 6.0.0, *)
+    public func request<T: Decodable>(
+        from urlString: String,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil) async -> Result<Response<T>, XiphiasNet.Errors> {
+            await withCheckedContinuation({ continuation in
+                request(
+                    from: urlString,
+                    method: method,
+                    payload: payload,
+                    headers: headers,
+                    config: config,
+                    completion: continuation.resume(returning:))
+            })
+        }
+
+    public func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
@@ -104,7 +185,7 @@ public class XiphiasNet {
         request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
 
-    public static func request<T: Decodable>(
+    public func request<T: Decodable>(
         from urlString: String,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
@@ -117,7 +198,7 @@ public class XiphiasNet {
 
     #if canImport(Combine)
     @available(macOS 10.15.0, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
-    public static func requestPublisher<T: Decodable>(
+    public func requestPublisher<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
@@ -125,9 +206,9 @@ public class XiphiasNet {
         config: XRequestConfig? = nil) -> AnyPublisher<Response<T>, Error> {
         let request = setupURLRequest(url: url, method: method, payload: payload?.asData, headers: headers)
 
-        return URLSession.shared.dataTaskPublisher(for: request)
+        return urlSession.dataTaskPublisher(for: request)
             .tryMap({ (output: URLSession.DataTaskPublisher.Output) -> Response<T> in
-                let transformedResponseResult: Result<Response<T>, XiphiasNet.Errors> = transformResponseOutput(
+                let transformedResponseResult: Result<Response<T>, XiphiasNet.Errors> = self.transformResponseOutput(
                     response: output.response,
                     data: output.data,
                     kowalskiAnalysis: config?.kowalskiAnalysis ?? false)
@@ -140,7 +221,7 @@ public class XiphiasNet {
     }
 
     @available(macOS 10.15.0, iOS 13.0, tvOS 13.0, watchOS 6.0, *)
-    public static func requestPublisher<T: Decodable>(
+    public func requestPublisher<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
         payload: [String: Any]? = nil,
@@ -153,7 +234,7 @@ public class XiphiasNet {
 }
 
 extension XiphiasNet {
-    private static func setupURLRequest(url: URL, method: HTTPMethod, payload: Data?, headers: [String: String]?) -> URLRequest {
+    private func setupURLRequest(url: URL, method: HTTPMethod, payload: Data?, headers: [String: String]?) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.allHTTPHeaderFields = headers
@@ -161,7 +242,7 @@ extension XiphiasNet {
         return request
     }
 
-    private static func handleDataTask<T: Decodable>(
+    private func handleDataTask<T: Decodable>(
         data: Data?,
         response: URLResponse?,
         error: Error?,
@@ -187,31 +268,34 @@ extension XiphiasNet {
         }
     }
 
-    private static func transformResponseOutput<T: Decodable>(response: URLResponse, data: Data, kowalskiAnalysis: Bool = false) -> Result<Response<T>, XiphiasNet.Errors> {
-        guard let jsonString = String(data: data, encoding: .utf8) else {
-            return .failure(.notAValidJSON)
-        }
+    private func transformResponseOutput<T: Decodable>(
+        response: URLResponse,
+        data: Data,
+        kowalskiAnalysis: Bool = false) -> Result<Response<T>, XiphiasNet.Errors> {
+            guard let jsonString = String(data: data, encoding: .utf8) else {
+                return .failure(.notAValidJSON)
+            }
 
-        if kowalskiAnalysis {
-            print("JSON STRING RESPONSE", jsonString)
-        }
+            if kowalskiAnalysis {
+                print("JSON STRING RESPONSE", jsonString)
+            }
 
-        var statusCode: Int?
-        if let response = response as? HTTPURLResponse {
-            statusCode = response.statusCode
-            guard response.statusCode < 400 else { return .failure(.responseError(message: jsonString, code: response.statusCode)) }
-        }
-        if let response = response as? HTTPURLResponse, response.statusCode >= 400 {
-            return .failure(.responseError(message: jsonString, code: response.statusCode))
-        }
+            var statusCode: Int?
+            if let response = response as? HTTPURLResponse {
+                statusCode = response.statusCode
+                guard response.statusCode < 400 else { return .failure(.responseError(message: jsonString, code: response.statusCode)) }
+            }
+            if let response = response as? HTTPURLResponse, response.statusCode >= 400 {
+                return .failure(.responseError(message: jsonString, code: response.statusCode))
+            }
 
-        let decodedResponse: T
-        do {
-            decodedResponse = try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            return .failure(.parsingError(error: error))
+            let decodedResponse: T
+            do {
+                decodedResponse = try JSONDecoder().decode(T.self, from: data)
+            } catch {
+                return .failure(.parsingError(error: error))
+            }
+            let response = Response(data: decodedResponse, status: statusCode)
+            return .success(response)
         }
-        let response = Response(data: decodedResponse, status: statusCode)
-        return .success(response)
-    }
 }
