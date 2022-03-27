@@ -55,6 +55,24 @@ public class XiphiasNet {
         task.resume()
     }
 
+    @available(iOS 13.0.0, macOS 10.15.0, tvOS 13.0.0, watchOS 6.0.0, *)
+    public static func request<T: Decodable>(
+        from url: URL,
+        method: HTTPMethod = .get,
+        payload: Data?,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil) async -> Result<Response<T>, XiphiasNet.Errors> {
+            await withCheckedContinuation({ continuation in
+                request(
+                    from: url,
+                    method: method,
+                    payload: payload,
+                    headers: headers,
+                    config: config,
+                    completion: continuation.resume(returning:))
+            })
+        }
+
     public static func request<T: Decodable>(
         from url: URL,
         method: HTTPMethod = .get,
@@ -64,6 +82,24 @@ public class XiphiasNet {
         completion: @escaping (Result<Response<T>, XiphiasNet.Errors>) -> Void) {
         request(from: url, method: method, payload: payload?.asData, headers: headers, config: config, completion: completion)
     }
+
+    @available(iOS 13.0.0, macOS 10.15.0, tvOS 13.0.0, watchOS 6.0.0, *)
+    public static func request<T: Decodable>(
+        from url: URL,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil) async -> Result<Response<T>, XiphiasNet.Errors> {
+            await withCheckedContinuation({ continuation in
+                request(
+                    from: url,
+                    method: method,
+                    payload: payload,
+                    headers: headers,
+                    config: config,
+                    completion: continuation.resume(returning:))
+            })
+        }
 
     public static func request<T: Decodable>(
         from urlString: String,
@@ -79,6 +115,24 @@ public class XiphiasNet {
         request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
 
+    @available(iOS 13.0.0, macOS 10.15.0, tvOS 13.0.0, watchOS 6.0.0, *)
+    public static func request<T: Decodable>(
+        from urlString: String,
+        method: HTTPMethod = .get,
+        payload: Data?,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil) async -> Result<Response<T>, XiphiasNet.Errors> {
+            await withCheckedContinuation({ continuation in
+                request(
+                    from: urlString,
+                    method: method,
+                    payload: payload,
+                    headers: headers,
+                    config: config,
+                    completion: continuation.resume(returning:))
+            })
+        }
+
     public static func request<T: Decodable>(
         from urlString: String,
         method: HTTPMethod = .get,
@@ -92,6 +146,24 @@ public class XiphiasNet {
         }
         request(from: url, method: method, payload: payload, headers: headers, config: config, completion: completion)
     }
+
+    @available(iOS 13.0.0, macOS 10.15.0, tvOS 13.0.0, watchOS 6.0.0, *)
+    public static func request<T: Decodable>(
+        from urlString: String,
+        method: HTTPMethod = .get,
+        payload: [String: Any]? = nil,
+        headers: [String: String]? = nil,
+        config: XRequestConfig? = nil) async -> Result<Response<T>, XiphiasNet.Errors> {
+            await withCheckedContinuation({ continuation in
+                request(
+                    from: urlString,
+                    method: method,
+                    payload: payload,
+                    headers: headers,
+                    config: config,
+                    completion: continuation.resume(returning:))
+            })
+        }
 
     public static func request<T: Decodable>(
         from url: URL,
